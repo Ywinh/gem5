@@ -1,0 +1,7 @@
+Import('*')
+
+SimObject('DemoMemory.py', sim_objects=['DemoMemory'])
+Source('demo_memory.cc')
+
+DebugFlag('DemoExample')
+DebugFlag('DemoMemory')

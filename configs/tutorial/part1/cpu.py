@@ -36,7 +36,7 @@ cache_hierarchy = PrivateL1CacheHierarchy(l1d_size="32KiB", l1i_size="32KiB")
 memory = SingleChannelDDR3_1600("1GiB")
 
 # By default, use Atomic CPU
-cpu_type = CPUTypes.ATOMIC
+cpu_type = CPUTypes.MINOR
 
 # Uncomment for steps 2 and 3
 # cpu_type = CPUTypes.TIMING
@@ -45,7 +45,7 @@ cpu_type = CPUTypes.ATOMIC
 # Uncomment and look at this cpu_type at home for fun!
 # cpu_type = CPUTypes.O3
 
-processor = SimpleProcessor(cpu_type=cpu_type, isa=ISA.RISCV, num_cores=8)
+processor = SimpleProcessor(cpu_type=cpu_type, isa=ISA.RISCV, num_cores=1)
 
 board = SimpleBoard(
     clk_freq="3GHz",
@@ -59,7 +59,10 @@ board = SimpleBoard(
 # riscv-matrix-multiply is obtained from
 # https://resources.gem5.org/resources/riscv-getting-started-benchmark-suite?version=1.0.0
 
-workload = obtain_resource("riscv-matrix-multiply-run")
-board.set_workload(workload)
+# workload = obtain_resource("riscv-matrix-multiply-run")
+# board.set_workload(workload)
+
+binary = obtain_resource("riscv-hello")
+board.set_se_binary_workload(binary)
 simulator = Simulator(board=board)
 simulator.run()
