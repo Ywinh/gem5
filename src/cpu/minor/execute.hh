@@ -71,7 +71,7 @@ class Execute : public Named
     /** Input port carrying instructions from Decode */
     Latch<ForwardInstData>::Output inp;
 
-    /** Input port carrying stream changes to Fetch1 */
+    /** Input port carrying stream changes to Fetch1 这里应该是output port吧？*/
     Latch<BranchData>::Input out;
 
     /** Pointer back to the containing CPU */

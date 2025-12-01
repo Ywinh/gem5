@@ -1512,7 +1512,7 @@ Execute::evaluate()
         if (getInput(tid)) {
             unsigned int input_index = executeInfo[tid].inputIndex;
             MinorDynInstPtr inst = getInput(tid)->insts[input_index];
-            if (inst->isFault()) {
+            if (inst->isFault()) { // fault指令也可以正常发射
                 can_issue_next = true;
             } else if (!inst->isBubble()) {
                 next_issuable_insts.push_back(inst);

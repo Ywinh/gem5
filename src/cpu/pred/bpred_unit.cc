@@ -304,7 +304,7 @@ BPredUnit::predict(const StaticInstPtr &inst, const InstSeqNum &seqNum,
     // functions will correct the branch if needed.
     // If prediction and actual direction are the same
     // at commit the prediction was correct.
-    hist->actuallyTaken = hist->predTaken;
+    hist->actuallyTaken = hist->predTaken; // 默认自己是正确的
     set(pc, *hist->target);
 
     DPRINTF(Branch, "%s(tid:%i, sn:%i, PC:%#x, %s) -> taken:%i, target:%s "

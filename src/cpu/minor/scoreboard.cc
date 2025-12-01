@@ -231,7 +231,7 @@ Scoreboard::canInstIssue(MinorDynInstPtr inst,
     {
         num_relative_latencies = src_reg_relative_latencies->size();
         default_relative_latency = (*src_reg_relative_latencies)
-            [num_relative_latencies-1];
+            [num_relative_latencies-1]; // 取出最后一个寄存器的relative_latencies作为默认？
     }
 
     auto *isa = thread_context->getIsaPtr();
@@ -245,19 +245,19 @@ Scoreboard::canInstIssue(MinorDynInstPtr inst,
         unsigned short int index;
 
         if (findIndex(reg, index)) {
-            int src_reg_fu = fuIndices[index];
+            int src_reg_fu = fuIndices[index]; // 取出哪个fu正在写这个src reg
             bool cant_forward = src_reg_fu != invalidFUIndex &&
                 cant_forward_from_fu_indices &&
                 src_reg_fu < cant_forward_from_fu_indices->size() &&
+                // 下面判断是否能前递，如果能前递才能使用 relative_latency ，更大的容忍度
                 (*cant_forward_from_fu_indices)[src_reg_fu];
-
             Cycles relative_latency = (cant_forward ? Cycles(0) :
                 (src_index >= num_relative_latencies ?
                     default_relative_latency :
                     (*src_reg_relative_latencies)[src_index]));
 
-            if (returnCycle[index] > (now + relative_latency) ||
-                numUnpredictableResults[index] != 0)
+            if (returnCycle[index] > (now + relative_latency) || // 超出了最早发射时间
+                numUnpredictableResults[index] != 0) // 不可预测
             {
                 ret = false;
             }

@@ -144,7 +144,7 @@ Decoder::decode(PCStateBase &_next_pc)
         return new ZcmtSecondFetchInst(emi, jvtEntry);
     }
 
-    if (compressed(emi)) {
+    if (compressed(emi)) { //检查是否是 riscv 的压缩指令 16bit
         next_pc.npc(next_pc.instAddr() + sizeof(machInst) / 2);
         next_pc.compressed(true);
     } else {
