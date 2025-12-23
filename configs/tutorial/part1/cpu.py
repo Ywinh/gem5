@@ -2,6 +2,9 @@ from gem5.components.boards.simple_board import SimpleBoard
 from gem5.components.cachehierarchies.classic.private_l1_cache_hierarchy import (
     PrivateL1CacheHierarchy,
 )
+from gem5.components.cachehierarchies.classic.private_l1_private_l2_cache_hierarchy import (
+    PrivateL1PrivateL2CacheHierarchy,
+)
 from gem5.components.memory.single_channel import SingleChannelDDR3_1600
 from gem5.components.processors.cpu_types import CPUTypes
 from gem5.components.processors.simple_processor import SimpleProcessor
@@ -31,7 +34,10 @@ from gem5.simulate.simulator import Simulator
 # In general: Run with gem5 [optional: --outdir=<cpu_type>-<cache_size>-cache] ./materials/developing-gem5-models/04-cores/cores.py
 
 # Start with 32KiB and change to 1KiB during step 3
-cache_hierarchy = PrivateL1CacheHierarchy(l1d_size="32KiB", l1i_size="32KiB")
+# cache_hierarchy = PrivateL1CacheHierarchy(l1d_size="32KiB", l1i_size="32KiB")
+cache_hierarchy = PrivateL1PrivateL2CacheHierarchy(
+    l1d_size="32KiB", l1i_size="32KiB", l2_size="256KiB"
+)
 
 memory = SingleChannelDDR3_1600("1GiB")
 
@@ -45,7 +51,7 @@ cpu_type = CPUTypes.MINOR
 # Uncomment and look at this cpu_type at home for fun!
 # cpu_type = CPUTypes.O3
 
-processor = SimpleProcessor(cpu_type=cpu_type, isa=ISA.RISCV, num_cores=1)
+processor = SimpleProcessor(cpu_type=cpu_type, isa=ISA.RISCV, num_cores=3)
 
 board = SimpleBoard(
     clk_freq="3GHz",
@@ -59,10 +65,11 @@ board = SimpleBoard(
 # riscv-matrix-multiply is obtained from
 # https://resources.gem5.org/resources/riscv-getting-started-benchmark-suite?version=1.0.0
 
-# workload = obtain_resource("riscv-matrix-multiply-run")
-# board.set_workload(workload)
+workload = obtain_resource("riscv-matrix-multiply-run")
+board.set_workload(workload)
 
-binary = obtain_resource("riscv-hello")
-board.set_se_binary_workload(binary)
+# binary = obtain_resource("riscv-hello")
+# board.set_se_binary_workload(binary)
+
 simulator = Simulator(board=board)
 simulator.run()

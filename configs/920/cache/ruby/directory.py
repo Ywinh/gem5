@@ -1,7 +1,5 @@
-# -*- mode:python -*-
-
-# Copyright (c) 2018 Inria
-# All rights reserved.
+# Copyright (c) 2021 The Regents of the University of California
+# All Rights Reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -26,25 +24,40 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-Import('*')
 
-SimObject('ReplacementPolicies.py', sim_objects=[
-    'BaseReplacementPolicy', 'DuelingRP', 'FIFORP', 'SecondChanceRP',
-    'LFURP', 'LRURP', 'BIPRP', 'MRURP', 'RandomRP', 'BRRIPRP', 'SHiPRP',
-    'SHiPMemRP', 'SHiPPCRP', 'TreePLRURP', 'WeightedLRURP', 'NMRURP'])
+from m5.objects import (
+    MESI_Two_Level_Directory_Controller,
+    MessageBuffer,
+    RubyDirectoryMemory,
+)
 
-Source('bip_rp.cc')
-Source('brrip_rp.cc')
-Source('dueling_rp.cc')
-Source('fifo_rp.cc')
-Source('lfu_rp.cc')
-Source('lru_rp.cc')
-Source('mru_rp.cc')
-Source('random_rp.cc')
-Source('second_chance_rp.cc')
-Source('ship_rp.cc')
-Source('tree_plru_rp.cc')
-Source('weighted_lru_rp.cc')
-Source('nmru_rp.cc')
 
-GTest('replaceable_entry.test', 'replaceable_entry.test.cc')
+class Directory(MESI_Two_Level_Directory_Controller):
+
+    _version = 0
+
+    @classmethod
+    def versionCount(cls):
+        cls._version += 1  # Use count for this particular type
+        return cls._version - 1
+
+    def __init__(self, network, cache_line_size, mem_range, port):
+        super().__init__()
+        self.version = self.versionCount()
+        self._cache_line_size = cache_line_size
+        self.connectQueues(network)
+
+        self.addr_ranges = [mem_range]
+        self.directory = RubyDirectoryMemory(block_size=cache_line_size)
+        # Connect this directory to the memory side.
+        self.memory_out_port = port
+
+    def connectQueues(self, network):
+        self.requestToDir = MessageBuffer()
+        self.requestToDir.in_port = network.out_port
+        self.responseToDir = MessageBuffer()
+        self.responseToDir.in_port = network.out_port
+        self.responseFromDir = MessageBuffer()
+        self.responseFromDir.out_port = network.in_port
+        self.requestToMemory = MessageBuffer()
+        self.responseFromMemory = MessageBuffer()
