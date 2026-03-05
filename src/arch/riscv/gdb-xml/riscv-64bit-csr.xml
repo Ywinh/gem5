@@ -47,6 +47,8 @@
   <reg name="hcause" bitsize="64"/>
   <reg name="hbadaddr" bitsize="64"/>
   <reg name="hip" bitsize="64"/>
+  <reg name="mhcr" bitsize="64"/>
+  <reg name="mhint" bitsize="64"/>
   <!-- <reg name="instret" bitsize="64"/>
   <reg name="hpmcounter3" bitsize="64"/>
   <reg name="hpmcounter4" bitsize="64"/>

@@ -120,13 +120,15 @@ RiscvProcess32::initState()
     argsInit<uint32_t>(PageBytes);
     for (ContextID ctx: contextIds) {
         auto *tc = system->threads[ctx];
-        tc->setMiscRegNoEffect(MISCREG_PRV, PRV_U);
+        // Start in Machine mode for bare-metal programs that need CSR access
+        tc->setMiscRegNoEffect(MISCREG_PRV, PRV_M);
         auto *isa = dynamic_cast<ISA*>(tc->getIsaPtr());
         fatal_if(isa->rvType() != RV32, "RISC V CPU should run in 32 bits mode");
         MISA misa = tc->readMiscRegNoEffect(MISCREG_ISA);
-        fatal_if(!(misa.rvu && misa.rvs),
-            "RISC V SE mode can't run without supervisor and user "
-            "privilege modes.");
+        // Comment out the check for bare-metal programs
+        // fatal_if(!(misa.rvu && misa.rvs),
+        //     "RISC V SE mode can't run without supervisor and user "
+        //     "privilege modes.");
     }
 }
 

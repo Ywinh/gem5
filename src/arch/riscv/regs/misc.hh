@@ -292,6 +292,10 @@ enum MiscRegIndex
     MISCREG_HPMCOUNTER31H,
     MISCREG_JVT,
 
+    // add xuantie misc reg here
+    MISCREG_MHCR,
+    MISCREG_MHINT,
+
     NUM_PHYS_MISCREGS,
     MISCREG_FFLAGS_EXE = NUM_PHYS_MISCREGS,
 
@@ -573,9 +577,14 @@ enum CSRIndex
     CSR_VSCAUSE   = 0x242,
     CSR_VSTVAL    = 0x243,
     CSR_VSIP      = 0x244,
-    CSR_VSATP     = 0x280
+    CSR_VSATP     = 0x280,
 
     // H-extension (RV64) CSRs end here
+
+    // add xuantie csr here
+    CSR_MHCR      = 0x7C1,
+    CSR_MHINT     = 0x7C5,
+    // xuantie csr end here
 };
 
 struct CSRMetadata
@@ -1321,6 +1330,14 @@ const std::unordered_map<int, CSRMetadata> CSRData = {
     {CSR_VSATP,
         {"vsatp", MISCREG_VSATP, rvTypeFlags(RV64),
         isaExtsFlags('h')}},
+
+    // add xuantie csr
+    {CSR_MHCR,
+        {"mhcr", MISCREG_MHCR, rvTypeFlags(RV32,RV64),
+        isaExtsFlags()}},
+    {CSR_MHINT,
+        {"mhint", MISCREG_MHINT, rvTypeFlags(RV32,RV64),
+        isaExtsFlags()}},
 };
 
 /**
@@ -1453,6 +1470,25 @@ BitUnion64(JVT)
     Bitfield<63,6> base;
     Bitfield<5,0> mode;
 EndBitUnion(JVT)
+
+// add for xuantie
+BitUnion64(MHCR)
+    Bitfield<40> wbr;
+    Bitfield<38> btb;
+    Bitfield<37> bpe;
+    Bitfield<36> rs;
+    Bitfield<35> wb;
+    Bitfield<34> wa;
+    Bitfield<33> de;
+    Bitfield<32> ie;
+EndBitUnion(MHCR)
+
+BitUnion64(MHINT)
+    Bitfield<46,45> d_dis;
+    Bitfield<40,39> ipld;
+    Bitfield<36,35> amr;
+    Bitfield<34> dpld;
+EndBitUnion(MHINT)
 
 const off_t MXL_OFFSETS[enums::Num_RiscvType] = {
     [RV32] = (sizeof(uint32_t) * 8 - 2),
