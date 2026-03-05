@@ -185,11 +185,25 @@ def verify_recursive(py_dict, ini_parser, section_name, path=""):
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("py_file")
-    parser.add_argument("ini_file")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Extract class-level/static config from a Python file and compare it "
+            "against sections in a gem5 config.ini."
+        ),
+        epilog=(
+            "Example:\n"
+            "  python3 my_scripts/verify_config.py config.py config.ini "
+            "--map L1Cache:system.cpu.icache --map L1DCache:system.cpu.dcache"
+        ),
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
+    parser.add_argument("py_file", help="Path to source Python file.")
+    parser.add_argument("ini_file", help="Path to target config.ini file.")
     parser.add_argument(
-        "--map", action="append", required=True, help="ClassName:IniPath"
+        "--map",
+        action="append",
+        required=True,
+        help="Mapping rule in format 'ClassName:IniSectionPath'. Repeatable.",
     )
     args = parser.parse_args()
 

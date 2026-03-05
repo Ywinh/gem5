@@ -1,12 +1,17 @@
+import argparse
 import csv
 import os
 import re
 import subprocess
 
 # ================= 配置区域 =================
-GEM5_PATH = "./build/X86/gem5.opt"
-CONFIG_PY = "configs/deprecated/example/se.py"
-BENCH_PATH = "/home/yinjianhui/2025-UCAS-CA-Gem5-lab/lab2-2/bench/linear"
+DEFAULT_GEM5_PATH = "./build/X86/gem5.opt"
+DEFAULT_CONFIG_PY = "configs/deprecated/example/se.py"
+DEFAULT_BENCH_PATH = (
+    "/home/yinjianhui/2025-UCAS-CA-Gem5-lab/lab2-2/bench/linear"
+)
+DEFAULT_OUTPUT_CSV = "lab_results_summary.csv"
+DEFAULT_OUT_PREFIX = "res_"
 
 # 严格按照要求的六组配置
 configs = [
@@ -57,14 +62,14 @@ configs = [
 # ===========================================
 
 
-def run_gem5(conf):
-    out_dir = f"res_{conf['id']}"
+def run_gem5(conf, gem5_path, config_py, bench_path, out_prefix):
+    out_dir = f"{out_prefix}{conf['id']}"
 
     # 构建基础命令，严格遵循你给出的格式
     cmd = [
-        GEM5_PATH,
+        gem5_path,
         f"--outdir={out_dir}",
-        CONFIG_PY,
+        config_py,
         "-n",
         "1",
         "--sys-clock",
@@ -97,7 +102,7 @@ def run_gem5(conf):
         )
 
     # 添加 benchmark 路径
-    cmd.extend(["-c", BENCH_PATH])
+    cmd.extend(["-c", bench_path])
 
     print(f"--- 正在运行 {conf['id']} ---")
     print(f"命令: {' '.join(cmd)}")
@@ -155,22 +160,69 @@ def parse_stats(conf, out_dir):
     return results
 
 
+def build_parser():
+    return argparse.ArgumentParser(
+        description=(
+            "Run six predefined gem5 cache/clock experiments and summarize stats."
+        ),
+        epilog=(
+            "Example:\n"
+            "  python3 my_scripts/run_exp.py --gem5-path ./build/X86/gem5.opt "
+            "--config-py configs/deprecated/example/se.py --bench-path /path/to/bin"
+        ),
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
+
+
 def main():
+    parser = build_parser()
+    parser.add_argument(
+        "--gem5-path",
+        default=DEFAULT_GEM5_PATH,
+        help="Path to gem5 binary.",
+    )
+    parser.add_argument(
+        "--config-py",
+        default=DEFAULT_CONFIG_PY,
+        help="Path to gem5 se.py-like config script.",
+    )
+    parser.add_argument(
+        "--bench-path",
+        default=DEFAULT_BENCH_PATH,
+        help="Path to benchmark binary passed to '-c'.",
+    )
+    parser.add_argument(
+        "--output-csv",
+        default=DEFAULT_OUTPUT_CSV,
+        help="CSV path for summarized results.",
+    )
+    parser.add_argument(
+        "--out-prefix",
+        default=DEFAULT_OUT_PREFIX,
+        help="Prefix for experiment output directories.",
+    )
+    args = parser.parse_args()
+
     final_results = []
 
     for conf in configs:
-        out_folder = run_gem5(conf)
+        out_folder = run_gem5(
+            conf,
+            args.gem5_path,
+            args.config_py,
+            args.bench_path,
+            args.out_prefix,
+        )
         data = parse_stats(conf, out_folder)
         final_results.append(data)
 
     # 保存到 CSV
-    output_csv = "lab_results_summary.csv"
-    with open(output_csv, "w", newline="") as f:
+    with open(args.output_csv, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=final_results[0].keys())
         writer.writeheader()
         writer.writerows(final_results)
 
-    print(f"\n实验完成！结果已汇总至: {output_csv}")
+    print(f"\n实验完成！结果已汇总至: {args.output_csv}")
 
     # 终端预览
     print("\n预览结果:")
