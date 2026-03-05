@@ -24,6 +24,7 @@ class L1ICachePrefetcher(TaggedPrefetcher):
         self.latency = 1  # 预取请求生成的延迟
 
         self.degree = 1  # 每次预取 1 个 Cache Line (实现 "Next-Line")
+        self.block_size = 4096  # Cache Line 大小 (字节)
 
 
 class L1DCachePrefetcher(StridePrefetcher):
@@ -63,8 +64,8 @@ class L1ICache(Cache):
         self.replacement_policy = FIFORP()
 
         self.sequential_access = False  # False表示tag和data访问是并行的
-        self.tag_latency = 2
-        self.data_latency = 2
+        self.tag_latency = 1
+        self.data_latency = 1
         self.response_latency = 2
 
         self.mshrs = 4  # 不能为0
@@ -83,14 +84,21 @@ class L1DCacheWriteAllocator(WriteAllocator):
     def __init__(self):
         super().__init__()
         """
-        # 920 only support write-allocate and write-noallocate but gem5 have 3 write mode:
-        # 1. write-allocate 2. write-coalesce 3. write-noallocate
-        # so set coalesce_limit = no_allocate_limit to change to 2 mode in gem5
-        # 目前暂时把limit设得很大, 使得一直处于写分配模式; 后续需要玄铁参数具体需要多少个Cacheline开启写不分配
+        硬件906写分配策略：
+        - 连续3条cacheline的存储操作后 → 切换到写不分配模式
+
+        gem5的WriteAllocator模式转换：
+        ALLOCATE → COALESCE (达到coalesce_limit条cacheline)
+                 → NO_ALLOCATE (达到no_allocate_limit条cacheline)
+
+        配置说明：
+        - coalesce_limit: cacheline数量（不是字节数）
+        - no_allocate_limit: cacheline数量（不是字节数）
+        - 设置为相同值可以跳过COALESCE模式，直接进入NO_ALLOCATE
         """
-        self.coalesce_limit = 10000
-        self.no_allocate_limit = 10000
-        self.delay_threshold = 8
+        self.coalesce_limit = 3  # 3条cacheline
+        self.no_allocate_limit = 3  # 3条cacheline后立即切换到no-allocate
+        self.delay_threshold = 8  # 延迟周期数
 
 
 class L1DCache(Cache):
@@ -101,9 +109,9 @@ class L1DCache(Cache):
         self.replacement_policy = FIFORP()
 
         self.sequential_access = False  # False表示tag和data访问是并行的
-        self.tag_latency = 2
-        self.data_latency = 2
-        self.response_latency = 2
+        self.tag_latency = 1
+        self.data_latency = 1
+        self.response_latency = 1  # 修改了没什么变化
 
         self.mshrs = 4
         self.tgts_per_mshr = 4

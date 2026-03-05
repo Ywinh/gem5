@@ -19,6 +19,9 @@ cache_hierarchy = PrivateL1CacheHierarchy(
 
 memory = SingleChannelDDR4_2400("1GB")
 
+# memory.set_memory_range(
+#         [AddrRange(start=0x80000000, size=memory.get_size())]
+#     )
 processor = C906Processor(is_fs=False)  # 使用自定义的 CPU 类
 
 board = SimpleBoard(
@@ -41,7 +44,11 @@ board = SimpleBoard(
 
 board.set_se_binary_workload(
     binary=BinaryResource(
-        local_path="/home/yinjianhui/gem5-resources/src/simple/out/riscv/user/hello.out"
+        # local_path="/home/yinjianhui/gem5-resources/src/simple/out/riscv/bare/fib.out"
+        # local_path="/home/yinjianhui/gem5-resources/src/simple/out/riscv/bare/my_coremark.out"
+        local_path="/home/yinjianhui/gem5-resources/my_coremark_xuantie.out"
+        # local_path="/home/yinjianhui/gem5-resources/src/simple/out/riscv/user/hello.out"
+        # local_path="/home/yinjianhui/gem5/riscv-test/FloatMM"
     )
 )
 

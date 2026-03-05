@@ -6,14 +6,16 @@ from m5.params import *
 
 class C906IntFU(MinorDefaultIntFU):
     opClasses = minorMakeOpClassSet(["IntAlu"])
-    timings = [MinorFUTiming(description="Int", srcRegsRelativeLats=[2])]
+    timings = [MinorFUTiming(description="Int", srcRegsRelativeLats=[0])]
+    issueLat = 1
     opLat = 1  # modify
 
 
 class C906IntMulFU(MinorDefaultIntMulFU):
     opClasses = minorMakeOpClassSet(["IntMult"])
     timings = [MinorFUTiming(description="Mul", srcRegsRelativeLats=[0])]
-    opLat = 3
+    issueLat = 1
+    opLat = 1
 
 
 class C906IntDivFU(MinorDefaultIntDivFU):
@@ -116,10 +118,13 @@ class C906MemReadFU(MinorDefaultMemFU):
     )
     timings = [
         MinorFUTiming(
-            description="Mem", srcRegsRelativeLats=[1], extraAssumedLat=1
+            description="Mem",
+            srcRegsRelativeLats=[1],
+            extraAssumedLat=1,  # "For mem refs, if this is 0, the result's time is marked as unpredictable and no forwarding can take place."
         )
     ]
-    opLat = 2  # modify cacheable load >= 2 cycles：oplat + extraAssumedLat
+    issueLat = 1
+    opLat = 1  # modify cacheable load >= 2 cycles：oplat + extraAssumedLat
 
 
 class C906MemWriteFU(MinorDefaultMemFU):
@@ -139,6 +144,7 @@ class C906MemWriteFU(MinorDefaultMemFU):
             description="Mem", srcRegsRelativeLats=[1], extraAssumedLat=1
         )
     ]
+    issueLat = 1
     opLat = 1  # cacheable store = 1 cycle
 
 
