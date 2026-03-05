@@ -30,6 +30,7 @@
 
 import m5
 from m5.objects import *
+from m5.objects import TrafficGen
 
 # This configuration shows a simple setup of a TrafficGen (CPU) and an
 # external TLM port for SystemC co-simulation
@@ -50,7 +51,52 @@ from m5.objects import *
 #              +-------+      v
 #
 
-# Create a system with a Crossbar and a TrafficGenerator as CPU:
+# # Create a system with a Crossbar and a TrafficGenerator as CPU:
+# system = System()
+# system.membus = IOXBar(width=16)
+# system.physmem = (
+#     SimpleMemory()
+# )  # This must be instanciated, even if not needed
+# # system.cpu = TrafficGen(config_file="conf/tgen.cfg")
+# system.cpu = RiscvTimingSimpleCPU()
+# system.clk_domain = SrcClockDomain(
+#     clock="1.5GHz", voltage_domain=VoltageDomain(voltage="1V")
+# )
+
+# # Create a external TLM port:
+# system.tlm = ExternalSlave()
+# system.tlm.addr_ranges = [AddrRange("512MiB")]
+# system.tlm.port_type = "tlm_slave"
+# system.tlm.port_data = "transactor"
+
+# # Route the connections:
+# # system.cpu.port = system.membus.cpu_side_ports
+# system.cpu.icache_port = system.membus.cpu_side_ports
+# system.cpu.dcache_port = system.membus.cpu_side_ports
+# system.cpu.createInterruptController()
+
+# system.system_port = system.membus.cpu_side_ports
+# system.membus.mem_side_ports = system.tlm.port
+
+
+# # 二进制可执行文件
+# binary = "/home/yinjianhui/gem5/riscv-test/FloatMM"
+# system.workload = SEWorkload.init_compatible(binary)
+# process = Process()
+# # 然后将 processes 命令设置为要运行的命令。这是一个类似于 argv 的列表，可执行文件位于第一个位置，可执行文件的参数位于列表的其余部分。
+# process.cmd = [binary]
+# system.cpu.workload = process
+# system.cpu.createThreads()
+
+# # Start the simulation:
+# root = Root(full_system=False, system=system)
+# root.system.mem_mode = "timing"
+# m5.instantiate()
+# m5.simulate()  # Simulation time specified later on commandline
+
+#######################################################
+######################### 原版 ########################
+#######################################################
 system = System()
 system.membus = IOXBar(width=16)
 system.physmem = (

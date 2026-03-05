@@ -34,13 +34,44 @@ import os
 import sys
 
 
-gem5_arch = 'ARM'
-gem5_variant = 'opt'
-#gem5_variant = 'debug'
+gem5_arch = 'RISCV'
+# gem5_variant = 'opt'
+gem5_variant = 'debug'
 
 gem5_root = Dir('#../..').srcnode().abspath
 
 env = Environment()
+
+########################################################################
+### 关键修改开始：添加 Conda 环境支持 (解决 libprotobuf/absl 链接错误) ###
+########################################################################
+
+# 检测是否在 Conda 环境中
+if 'CONDA_PREFIX' in os.environ:
+    conda_prefix = os.environ['CONDA_PREFIX']
+    conda_include = os.path.join(conda_prefix, 'include')
+    conda_lib = os.path.join(conda_prefix, 'lib')
+
+    print(f"Info: Detected Conda environment at {conda_prefix}")
+    print(f"Info: Adding {conda_lib} to library paths")
+
+    # 1. 添加头文件路径 (CPPPATH)
+    env.Append(CPPPATH=[conda_include])
+
+    # 2. 添加库查找路径 (LIBPATH)
+    env.Append(LIBPATH=[conda_lib])
+
+    # 3. 关键：添加链接器标志 (LINKFLAGS)
+    # -Wl,-rpath: 告诉程序运行时去哪里找库 (避免运行时还需要 export LD_LIBRARY_PATH)
+    # -Wl,-rpath-link: 告诉链接器去哪里找传递依赖 (解决 needed by ... not found)
+    env.Append(LINKFLAGS=[
+        f'-Wl,-rpath={conda_lib}',
+        f'-Wl,-rpath-link={conda_lib}'
+    ])
+
+########################################################################
+### 关键修改结束 ###
+########################################################################
 
 #Make the gem5 root available in SConscripts
 env['GEM5_ROOT'] = gem5_root

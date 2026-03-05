@@ -62,9 +62,9 @@ system.tlm.port_type = "tlm_master"
 system.tlm.port_data = "transactor"
 
 # Route the connections:
-system.system_port = system.membus.slave
-system.physmem.port = system.membus.master
-system.tlm.port = system.membus.slave
+system.system_port = system.membus.cpu_side_ports
+system.physmem.port = system.membus.mem_side_ports
+system.tlm.port = system.membus.cpu_side_ports
 system.mem_mode = "timing"
 
 # Start the simulation:
