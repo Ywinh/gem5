@@ -292,9 +292,11 @@ enum MiscRegIndex
     MISCREG_HPMCOUNTER31H,
     MISCREG_JVT,
 
-    // add xuantie misc reg here
+    // Xuantie vendor misc regs
     MISCREG_MHCR,
     MISCREG_MHINT,
+    MISCREG_MXSTATUS,
+    MISCREG_MCCR2,
 
     NUM_PHYS_MISCREGS,
     MISCREG_FFLAGS_EXE = NUM_PHYS_MISCREGS,
@@ -581,10 +583,11 @@ enum CSRIndex
 
     // H-extension (RV64) CSRs end here
 
-    // add xuantie csr here
+    // Xuantie vendor CSRs
+    CSR_MXSTATUS  = 0x7C0,
     CSR_MHCR      = 0x7C1,
+    CSR_MCCR2     = 0x7C3,
     CSR_MHINT     = 0x7C5,
-    // xuantie csr end here
 };
 
 struct CSRMetadata
@@ -1331,12 +1334,18 @@ const std::unordered_map<int, CSRMetadata> CSRData = {
         {"vsatp", MISCREG_VSATP, rvTypeFlags(RV64),
         isaExtsFlags('h')}},
 
-    // add xuantie csr
+    // Xuantie vendor CSRs
+    {CSR_MXSTATUS,
+        {"mxstatus", MISCREG_MXSTATUS, rvTypeFlags(RV32, RV64),
+        isaExtsFlags()}},
     {CSR_MHCR,
-        {"mhcr", MISCREG_MHCR, rvTypeFlags(RV32,RV64),
+        {"mhcr", MISCREG_MHCR, rvTypeFlags(RV32, RV64),
+        isaExtsFlags()}},
+    {CSR_MCCR2,
+        {"mccr2", MISCREG_MCCR2, rvTypeFlags(RV32, RV64),
         isaExtsFlags()}},
     {CSR_MHINT,
-        {"mhint", MISCREG_MHINT, rvTypeFlags(RV32,RV64),
+        {"mhint", MISCREG_MHINT, rvTypeFlags(RV32, RV64),
         isaExtsFlags()}},
 };
 
