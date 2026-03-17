@@ -41,19 +41,19 @@ def parse_args():
         help="Number of C920 cores (1-4)",
     )
     parser.add_argument(
-        "--l1i-size", type=str, default="64KiB", help="L1 I-Cache size"
+        "--l1i-size", type=str, default="32KiB", help="L1 I-Cache size"
     )
     parser.add_argument(
-        "--l1d-size", type=str, default="64KiB", help="L1 D-Cache size"
+        "--l1d-size", type=str, default="32KiB", help="L1 D-Cache size"
     )
     parser.add_argument(
-        "--l2-size", type=str, default="512KiB", help="L2 Cache size"
+        "--l2-size", type=str, default="256KiB", help="L2 Cache size"
     )
     parser.add_argument(
         "--mem-size", type=str, default="1GB", help="Main memory size"
     )
     parser.add_argument(
-        "--clock", type=str, default="2GHz", help="CPU clock frequency"
+        "--clock", type=str, default="1GHz", help="CPU clock frequency"
     )
     return parser.parse_args()
 

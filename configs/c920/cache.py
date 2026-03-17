@@ -229,11 +229,11 @@ class C920_L1ICache(Cache):
     Tag and data accessed in parallel (sequential_access=False).
     """
 
-    def __init__(self, size="64KiB"):
+    def __init__(self, size="32KiB"):
         super().__init__()
 
         # --- Capacity ---
-        self.size = size  # C920: 64KB [required]
+        self.size = size  # C920: 32KB [required]
         self.assoc = 2  # C920: 2-way (§7.2.1) [required]
 
         # --- Latency ---
@@ -285,11 +285,11 @@ class C920_L1DCache(Cache):
     (parallel), plus pipeline stage delays from O3CPU.
     """
 
-    def __init__(self, size="64KiB"):
+    def __init__(self, size="32KiB"):
         super().__init__()
 
         # --- Capacity ---
-        self.size = size  # C920: 64KB [required]
+        self.size = size  # C920: 32KB [required]
         self.assoc = 2  # C920: 2-way (§7.3.1) [required]
 
         # --- Latency ---
@@ -341,11 +341,11 @@ class C920_L2Cache(Cache):
     Sequential access (tag-then-data) typical for large L2.
     """
 
-    def __init__(self, size="512KiB"):
+    def __init__(self, size="256KiB"):
         super().__init__()
 
         # --- Capacity ---
-        self.size = size  # C920: 512KB (user selected) [required]
+        self.size = size  # C920: 256KB (user selected) [required]
         self.assoc = 16  # C920: 16-way (§7.4.1) [required]
 
         # --- Latency ---

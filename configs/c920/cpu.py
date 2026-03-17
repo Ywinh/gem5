@@ -208,4 +208,4 @@ class C920Core(BaseCPUCore):
         super().__init__(core=C920_O3CPU(cpu_id=core_id), isa=ISA.RISCV)
         self.core.isa[0].enable_rvv = True  # enable RVV (§1.2.2)
         self.core.isa[0].vlen = 128  # VLEN=128 bits (§4.5)
-        self.core.isa[0].riscv_type = "RV32"
+        # self.core.isa[0].riscv_type = "RV32"
