@@ -283,6 +283,7 @@ const std::array<const char *, NUM_MISCREGS> MiscRegNames = {{
     [MISCREG_JVT] = "JVT",
 
     [MISCREG_MHCR]        = "MHCR",
+    [MISCREG_MCOR]        = "MCOR",
     [MISCREG_MHINT]       = "MHINT",
     [MISCREG_MXSTATUS]    = "MXSTATUS",
     [MISCREG_MCCR2]       = "MCCR2",
