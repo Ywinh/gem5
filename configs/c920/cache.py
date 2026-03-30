@@ -301,7 +301,7 @@ class C920_L1DCache(Cache):
         # --- MSHRs ---
         self.mshrs = 8  # max outstanding misses [required]
         self.demand_mshr_reserve = 1  # reserved for demand [default: 1]
-        self.tgts_per_mshr = 8  # targets per MSHR [required]
+        self.tgts_per_mshr = 2  # targets per MSHR [required]
         self.write_buffers = 16  # 16 write buffer entries [default: 8]
 
         # --- Behavior ---
