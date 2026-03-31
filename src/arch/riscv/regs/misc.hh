@@ -294,6 +294,7 @@ enum MiscRegIndex
 
     // Xuantie vendor misc regs
     MISCREG_MHCR,
+    MISCREG_MCOR,
     MISCREG_MHINT,
     MISCREG_MXSTATUS,
     MISCREG_MCCR2,
@@ -586,6 +587,7 @@ enum CSRIndex
     // Xuantie vendor CSRs
     CSR_MXSTATUS  = 0x7C0,
     CSR_MHCR      = 0x7C1,
+    CSR_MCOR      = 0x7C2,
     CSR_MCCR2     = 0x7C3,
     CSR_MHINT     = 0x7C5,
 };
@@ -1340,6 +1342,9 @@ const std::unordered_map<int, CSRMetadata> CSRData = {
         isaExtsFlags()}},
     {CSR_MHCR,
         {"mhcr", MISCREG_MHCR, rvTypeFlags(RV32, RV64),
+        isaExtsFlags()}},
+    {CSR_MCOR,
+        {"mcor", MISCREG_MCOR, rvTypeFlags(RV32, RV64),
         isaExtsFlags()}},
     {CSR_MCCR2,
         {"mccr2", MISCREG_MCCR2, rvTypeFlags(RV32, RV64),
