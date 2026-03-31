@@ -8,6 +8,10 @@ cscope.out
 *~
 .*.swp
 .*.swo
+*.txt
+./.vscode/
+./riscv-test/
+*.log
 m5out
 /src/doxygen/html
 /docs/_build
