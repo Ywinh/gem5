@@ -17,6 +17,7 @@ from m5.objects import *
 from gem5.components.boards.simple_board import SimpleBoard
 from gem5.components.memory.dram_interfaces.ddr4 import DDR4_2400_8x8
 from gem5.components.memory.memory import ChanneledMemory
+from gem5.components.memory.simple import SingleChannelSimpleMemory
 from gem5.components.memory.single_channel import SingleChannelDDR4_2400
 from gem5.resources.resource import (
     BinaryResource,
@@ -74,6 +75,8 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="XuanTie C920 gem5 simulation"
     )
+    mode_group = parser.add_mutually_exclusive_group()
+
     parser.add_argument(
         "--binary",
         type=str,
@@ -102,10 +105,66 @@ def parse_args():
     parser.add_argument(
         "--clock", type=str, default="1GHz", help="CPU clock frequency"
     )
-    parser.add_argument(
+    mode_group.add_argument(
         "--zero-dram-latency",
         action="store_true",
-        help="Preserve DDR4 burst structure/controller path but collapse DRAM timing",
+        help=(
+            "Preserve DDR4 burst structure/controller path but collapse "
+            "DRAM timing"
+        ),
+    )
+    mode_group.add_argument(
+        "--systemc-print-mem",
+        action="store_true",
+        help=(
+            "Route memory traffic through Gem5ToTlmBridge and a "
+            "SystemC print target"
+        ),
+    )
+    mode_group.add_argument(
+        "--gem5-simple-mem",
+        action="store_true",
+        help=(
+            "Use gem5 SimpleMemory with explicit latency/bandwidth controls"
+        ),
+    )
+    mode_group.add_argument(
+        "--systemc-simple-mem",
+        action="store_true",
+        help=(
+            "Route memory traffic through Gem5ToTlmBridge into a "
+            "SystemC simple memory"
+        ),
+    )
+    parser.add_argument(
+        "--simple-mem-latency",
+        type=str,
+        default="30ns",
+        help=(
+            "Request-to-response latency for gem5/SystemC simple "
+            "memory modes"
+        ),
+    )
+    parser.add_argument(
+        "--simple-mem-latency-var",
+        type=str,
+        default="0ns",
+        help=("Latency variation for gem5/SystemC simple memory modes"),
+    )
+    parser.add_argument(
+        "--simple-mem-bandwidth",
+        type=str,
+        default="12.8GiB/s",
+        help=(
+            "Combined read/write bandwidth for gem5/SystemC simple "
+            "memory modes"
+        ),
+    )
+    parser.add_argument(
+        "--max-ticks",
+        type=int,
+        default=None,
+        help="Optional tick limit for short SystemC connectivity runs",
     )
     return parser.parse_args()
 
@@ -119,7 +178,41 @@ def main():
         l2_size=args.l2_size,
     )
 
-    if args.zero_dram_latency:
+    if args.systemc_print_mem:
+        from systemc_memory import C920SystemcPrintMemory
+
+        print(
+            "SystemC print-memory mode enabled: requests are forwarded to "
+            "a SystemC print target and mirrored into gem5 physmem backing "
+            "store for executable SE runs."
+        )
+        memory = C920SystemcPrintMemory(args.mem_size)
+    elif args.systemc_simple_mem:
+        from systemc_memory import C920SystemcSimpleMemory
+
+        print(
+            "SystemC simple-memory mode enabled: requests are forwarded "
+            "through Gem5ToTlmBridge into a SystemC memory with "
+            "SimpleMemory-like latency and bandwidth controls."
+        )
+        memory = C920SystemcSimpleMemory(
+            size=args.mem_size,
+            latency=args.simple_mem_latency,
+            latency_var=args.simple_mem_latency_var,
+            bandwidth=args.simple_mem_bandwidth,
+        )
+    elif args.gem5_simple_mem:
+        print(
+            "gem5 SimpleMemory mode enabled with explicit latency and "
+            "bandwidth controls."
+        )
+        memory = SingleChannelSimpleMemory(
+            latency=args.simple_mem_latency,
+            latency_var=args.simple_mem_latency_var,
+            bandwidth=args.simple_mem_bandwidth,
+            size=args.mem_size,
+        )
+    elif args.zero_dram_latency:
         memory = SingleChannelDDR4_2400_NoDRAMTiming(args.mem_size)
     else:
         memory = SingleChannelDDR4_2400(args.mem_size)
@@ -141,7 +234,7 @@ def main():
         board.set_se_binary_workload(binary=obtain_resource("riscv-hello"))
 
     simulator = Simulator(board=board)
-    simulator.run()
+    simulator.run(max_ticks=args.max_ticks)
 
     print("Simulation Done")
 

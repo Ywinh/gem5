@@ -32,7 +32,11 @@ SimObject('TlmBridge.py', sim_objects=[
     'Gem5ToTlmBridgeBase', 'TlmToGem5BridgeBase'] +
     [f'Gem5ToTlmBridge{bits}' for bits in (32, 64, 128, 256, 512)] +
     [f'TlmToGem5Bridge{bits}' for bits in (32, 64, 128, 256, 512)])
+SimObject('C920TlmPrintMem.py', sim_objects=['C920TlmPrintMem'])
+SimObject('C920TlmSimpleMem.py', sim_objects=['C920TlmSimpleMem'])
 
+Source('c920_tlm_print_mem.cc')
+Source('c920_tlm_simple_mem.cc')
 Source('gem5_to_tlm.cc')
 Source('sc_ext.cc')
 Source('sc_mm.cc')
