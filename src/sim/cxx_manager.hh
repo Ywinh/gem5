@@ -152,6 +152,14 @@ class CxxConfigManager
      *  Also */
     void bindAllPorts();
 
+    /** Bind instantiated SimObjects into the statistics hierarchy.
+     *
+     * Python wires this hierarchy explicitly before enabling stats. The
+     * C++-only configuration path has to mirror that step so new-style
+     * statistics are reachable from the root group during dumps.
+     */
+    void bindAllStatGroups();
+
     /** Class for resolving SimObject names to SimObjects usable by the
      *  checkpoint restore mechanism */
     class SimObjectResolver : public gem5::SimObjectResolver

@@ -192,20 +192,25 @@ class SimObject(PySource):
 
             # CXX config header.
             config_hh = build_dir.File(f'cxx_config/{simobj}.hh').get_abspath()
-            gem5py_env.Command([ "${CXXCONFIG_HH}" ], srcs,
+            gem5py_env.Command([ "${CXXCONFIG_HH}" ], srcs + ["${PARAMS_HH}"],
                     MakeAction(cmdline('CXXCONFIG_HH'),
                         Transform("CXXCPRHH", 2)),
                     PYSCRIPT=build_tools.File('cxx_config_hh.py'),
                     MODULE=module,
+                    PARAMS_HH=params_hh,
                     CXXCONFIG_HH=config_hh)
 
             # CXX config cc.
             cc_file=build_dir.File(f'cxx_config/{simobj}.cc')
-            gem5py_env.Command([ "${CXXCONFIG_CC}" ], srcs,
+            gem5py_env.Command(
+                [ "${CXXCONFIG_CC}" ],
+                srcs + ["${PARAMS_HH}", "${CXXCONFIG_HH}"],
                     MakeAction(cmdline('CXXCONFIG_CC'),
                         Transform("CXXCPRCC", 2)),
                     PYSCRIPT=build_tools.File('cxx_config_cc.py'),
                     MODULE=module,
+                    PARAMS_HH=params_hh,
+                    CXXCONFIG_HH=config_hh,
                     CXXCONFIG_CC=cc_file.get_abspath())
             if GetOption('with_cxx_config'):
                 Source(cc_file.get_abspath(), tags=self.tags)

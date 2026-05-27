@@ -503,6 +503,52 @@ CxxConfigManager::bindAllPorts()
 }
 
 void
+CxxConfigManager::bindAllStatGroups()
+{
+    for (auto *object : objectsInOrder) {
+        const std::string &instance_name = object->name();
+        const std::string object_name = unRename(instance_name);
+
+        if (object_name == "root") {
+            continue;
+        }
+
+        std::string parent_object_name;
+        const auto object_dot = object_name.rfind('.');
+        if (object_dot == std::string::npos) {
+            parent_object_name = "root";
+        } else {
+            parent_object_name = object_name.substr(0, object_dot);
+        }
+
+        std::string child_group_name = instance_name;
+        const auto instance_dot = instance_name.rfind('.');
+        if (instance_dot != std::string::npos) {
+            child_group_name = instance_name.substr(instance_dot + 1);
+        }
+
+        const std::string parent_instance_name = rename(parent_object_name);
+        SimObject *parent = nullptr;
+
+        auto it = objectsByName.find(parent_instance_name);
+        if (it != objectsByName.end()) {
+            parent = it->second;
+        }
+
+        if (!parent) {
+            parent = SimObject::find(parent_instance_name.c_str());
+        }
+
+        if (!parent) {
+            throw Exception(instance_name, csprintf(
+                "Can't find stat parent object: %s", parent_instance_name));
+        }
+
+        parent->addStatGroup(child_group_name.c_str(), object);
+    }
+}
+
+void
 CxxConfigManager::bindPort(
     SimObject *requestor_object, const std::string &request_port_name,
     PortID request_port_index,
@@ -661,6 +707,9 @@ CxxConfigManager::instantiate(bool build_all)
 
     DPRINTF(CxxConfig, "Registering stats\n");
     forEachObject(&SimObject::regStats);
+
+    DPRINTF(CxxConfig, "Binding stats hierarchy\n");
+    bindAllStatGroups();
 
     DPRINTF(CxxConfig, "Registering probe points\n");
     forEachObject(&SimObject::regProbePoints);

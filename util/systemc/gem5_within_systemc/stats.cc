@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2014 ARM Limited
- * All rights reserved
+ * All rights reserved.
  *
  * The license below extends only to copyright in the software and shall
  * not be construed as granting a license to any other intellectual
@@ -43,124 +43,148 @@
  *  Register with: gem5::statistics::registerHandlers(statsReset, statsDump)
  */
 
-#include <iostream>
+#include <algorithm>
 #include <list>
+#include <vector>
 
 #include "base/logging.hh"
 #include "base/output.hh"
 #include "base/statistics.hh"
+#include "base/stats/group.hh"
 #include "base/stats/text.hh"
+#include "sim/root.hh"
+#include "sim/sim_object.hh"
 #include "stats.hh"
 
 namespace CxxConfig
 {
 
-void statsPrepare()
+namespace
 {
-    std::list<gem5::statistics::Info *> stats = gem5::statistics::statsList();
 
-    /* gather_stats -> prepare */
-    for (auto i = stats.begin(); i != stats.end(); ++i){
-        gem5::statistics::Info *stat = *i;
-        gem5::statistics::VectorInfo *vector =
-            dynamic_cast<gem5::statistics::VectorInfo *>(stat);
-        if (vector){
-            (dynamic_cast<gem5::statistics::VectorInfo *>(*i))->prepare();
-        }
-        else {
-            (*i)->prepare();
-        }
+using gem5::Root;
+using gem5::statistics::Group;
+using gem5::statistics::Info;
+using gem5::statistics::Output;
 
+Root *
+rootGroup()
+{
+    auto *root_obj = gem5::SimObject::find("root");
+    return dynamic_cast<Root *>(root_obj);
+}
+
+void
+statsEnableGroup(Group &group)
+{
+    for (auto *info : group.getStats()) {
+        info->enable();
+    }
+
+    for (const auto &[name, child] : group.getStatGroups()) {
+        statsEnableGroup(*child);
     }
 }
 
-void statsDump()
+void
+statsPrepareGroup(Group &group)
 {
-    bool desc = true;
+    for (auto *info : group.getStats()) {
+        info->prepare();
+    }
+
+    for (const auto &[name, child] : group.getStatGroups()) {
+        statsPrepareGroup(*child);
+    }
+}
+
+void
+statsVisitGroup(Output &output, const Group &group)
+{
+    for (auto *info : group.getStats()) {
+        info->visit(output);
+    }
+
+    for (const auto &[name, child] : group.getStatGroups()) {
+        output.beginGroup(name.c_str());
+        statsVisitGroup(output, *child);
+        output.endGroup();
+    }
+}
+
+void
+statsEnableLegacy()
+{
+    for (auto *info : gem5::statistics::statsList()) {
+        info->enable();
+    }
+}
+
+void
+statsPrepareLegacy()
+{
+    for (auto *info : gem5::statistics::statsList()) {
+        info->prepare();
+    }
+}
+
+void
+statsVisitLegacy(Output &output)
+{
+    for (auto *info : gem5::statistics::statsList()) {
+        info->visit(output);
+    }
+}
+
+} // anonymous namespace
+
+void
+statsPrepare()
+{
+    if (auto *root = rootGroup(); root != nullptr) {
+        root->preDumpStats();
+        statsPrepareGroup(*root);
+    }
+
+    statsPrepareLegacy();
+}
+
+void
+statsDump()
+{
+    const bool desc = true;
     gem5::statistics::Output *output =
         gem5::statistics::initText(filename, desc, true);
 
     gem5::statistics::processDumpQueue();
 
-    std::list<gem5::statistics::Info *> stats = gem5::statistics::statsList();
-
     statsEnable();
     statsPrepare();
 
     output->begin();
-    /* gather_stats -> convert_value */
-    for (auto i = stats.begin(); i != stats.end(); ++i) {
-        gem5::statistics::Info *stat = *i;
 
-        const gem5::statistics::ScalarInfo *scalar =
-            dynamic_cast<gem5::statistics::ScalarInfo *>(stat);
-        gem5::statistics::VectorInfo *vector =
-            dynamic_cast<gem5::statistics::VectorInfo *>(stat);
-        const gem5::statistics::Vector2dInfo *vector2d =
-            dynamic_cast<gem5::statistics::Vector2dInfo *>(vector);
-        const gem5::statistics::DistInfo *dist =
-            dynamic_cast<gem5::statistics::DistInfo *>(stat);
-        const gem5::statistics::VectorDistInfo *vectordist =
-            dynamic_cast<gem5::statistics::VectorDistInfo *>(stat);
-        const gem5::statistics::SparseHistInfo *sparse =
-            dynamic_cast<gem5::statistics::SparseHistInfo *>(stat);
-        const gem5::statistics::InfoProxy <gem5::statistics::Vector2d,
-            gem5::statistics::Vector2dInfo> *info =
-            dynamic_cast<gem5::statistics::InfoProxy
-            <gem5::statistics::Vector2d,
-            gem5::statistics::Vector2dInfo>*>(stat);
-
-        if (vector) {
-            const gem5::statistics::FormulaInfo *formula =
-                dynamic_cast<gem5::statistics::FormulaInfo *>(vector);
-            if (formula){
-                output->visit(*formula);
-            } else {
-                const gem5::statistics::VectorInfo *vector1 = vector;
-                output->visit(*vector1);
-            }
-        } else if (vector2d) {
-            output->visit(*vector2d);
-        } else if (info){
-            output->visit(*info);
-        } else if (vectordist){
-            output->visit(*vectordist);
-        } else if (dist) {
-            output->visit(*dist);
-        } else if (sparse) {
-            output->visit(*sparse);
-        } else if (scalar) {
-            output->visit(*scalar);
-        } else {
-            warn("Stat not dumped: %s\n", stat->name);
-        }
+    if (auto *root = rootGroup(); root != nullptr) {
+        statsVisitGroup(*output, *root);
     }
+
+    statsVisitLegacy(*output);
     output->end();
 }
 
-void statsReset()
+void
+statsReset()
 {
-    std::cerr << "Stats reset\n";
-
     gem5::statistics::processResetQueue();
 }
 
-void statsEnable()
+void
+statsEnable()
 {
-    std::list<gem5::statistics::Info *> stats = gem5::statistics::statsList();
-
-    for (auto i = stats.begin(); i != stats.end(); ++i){
-        gem5::statistics::Info *stat = *i;
-        gem5::statistics::VectorInfo *vector =
-            dynamic_cast<gem5::statistics::VectorInfo *>(stat);
-        if (vector){
-            (dynamic_cast<gem5::statistics::VectorInfo *>(*i))->enable();
-        }
-        else {
-            (*i)->enable();
-        }
-
+    if (auto *root = rootGroup(); root != nullptr) {
+        statsEnableGroup(*root);
     }
+
+    statsEnableLegacy();
 }
 
-}
+} // namespace CxxConfig
