@@ -21,8 +21,8 @@
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 # "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 # TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-# PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER
-# OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
 # EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
 # PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
 # PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
@@ -34,9 +34,9 @@ import os
 import sys
 
 
-gem5_arch = 'RISCV'
-# gem5_variant = 'opt'
-gem5_variant = 'debug'
+gem5_arch = ARGUMENTS.get('GEM5_ARCH', os.environ.get('GEM5_ARCH', 'RISCV'))
+gem5_variant = ARGUMENTS.get(
+    'GEM5_VARIANT', os.environ.get('GEM5_VARIANT', 'opt'))
 
 gem5_root = Dir('#../..').srcnode().abspath
 
@@ -145,4 +145,9 @@ ex_slave = SConscript('examples/slave_port/SConscript',
                       exports=['env', 'deps'],
                       duplicate=GetOption('duplicate_sources'))
 
-Default(ex_master + ex_slave)
+ex_c920 = SConscript('examples/c920_simple_mem/SConscript',
+                     variant_dir='build/examples/c920_simple_mem',
+                     exports=['env', 'deps'],
+                     duplicate=GetOption('duplicate_sources'))
+
+Default(ex_master + ex_slave + ex_c920)

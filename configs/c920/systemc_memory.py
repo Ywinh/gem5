@@ -10,15 +10,12 @@ from typing import (
 
 from m5.objects import (
     AddrRange,
-    C920TlmPrintMem,
-    C920TlmSimpleMem,
-    Gem5ToTlmBridge64,
+    ExternalSlave,
     MemCtrl,
     MemInterface,
     Port,
     Root,
     SimpleMemory,
-    SystemC_Kernel,
 )
 from m5.util.convert import toMemorySize
 
@@ -43,6 +40,8 @@ class _C920SystemcMemoryBase(AbstractMemorySystem):
         self._size = toMemorySize(size)
         self._mem_range = None
 
+        from m5.objects import Gem5ToTlmBridge64
+
         self.bridge = Gem5ToTlmBridge64()
         self.target = target
         self.backing = SimpleMemory(latency="1ps", bandwidth="1TiB/s")
@@ -51,6 +50,8 @@ class _C920SystemcMemoryBase(AbstractMemorySystem):
 
     @overrides(AbstractMemorySystem)
     def _pre_instantiate(self, root: Root) -> None:
+        from m5.objects import SystemC_Kernel
+
         root.systemc_kernel = SystemC_Kernel()
 
     @overrides(AbstractMemorySystem)
@@ -107,6 +108,8 @@ class C920SystemcPrintMemory(_C920SystemcMemoryBase):
     """
 
     def __init__(self, size: str = "1GiB") -> None:
+        from m5.objects import C920TlmPrintMem
+
         super().__init__(size=size, target=C920TlmPrintMem())
 
 
@@ -122,6 +125,8 @@ class C920SystemcSimpleMemory(_C920SystemcMemoryBase):
         latency_var: str = "0ns",
         bandwidth: str = "12.8GiB/s",
     ) -> None:
+        from m5.objects import C920TlmSimpleMem
+
         super().__init__(
             size=size,
             target=C920TlmSimpleMem(
@@ -130,3 +135,69 @@ class C920SystemcSimpleMemory(_C920SystemcMemoryBase):
                 bandwidth=bandwidth,
             ),
         )
+
+
+class C920ExternalSystemcSimpleMemory(AbstractMemorySystem):
+    """
+    External-SystemC memory backed by util/tlm's tlm_slave port handler.
+
+    The actual storage and timing model live in the standalone SystemC
+    executable. A tiny unconnected SimpleMemory is kept so SE mode still has a
+    physmem object and page allocator inside gem5.
+    """
+
+    def __init__(self, size: str = "1GiB") -> None:
+        super().__init__()
+
+        self._size = toMemorySize(size)
+        self._mem_range = None
+
+        self.target = ExternalSlave(
+            port_type="tlm_slave",
+            port_data="transactor",
+        )
+        self.backing = SimpleMemory(latency="1ps", bandwidth="1TiB/s")
+
+    @overrides(AbstractMemorySystem)
+    def incorporate_memory(self, board: AbstractBoard) -> None:
+        pass
+
+    @overrides(AbstractMemorySystem)
+    def get_mem_ports(self) -> Sequence[Tuple[AddrRange, Port]]:
+        if self._mem_range is None:
+            raise Exception(
+                "Memory range must be set before requesting ports."
+            )
+
+        return [(self._mem_range, self.target.port)]
+
+    @overrides(AbstractMemorySystem)
+    def get_memory_controllers(self) -> List[MemCtrl]:
+        return [self.backing]
+
+    @overrides(AbstractMemorySystem)
+    def get_mem_interfaces(self) -> List[MemInterface]:
+        return []
+
+    @overrides(AbstractMemorySystem)
+    def get_size(self) -> int:
+        return self._size
+
+    @overrides(AbstractMemorySystem)
+    def set_memory_range(self, ranges: List[AddrRange]) -> None:
+        if len(ranges) != 1 or ranges[0].size() != self._size:
+            raise Exception(
+                "C920 external SystemC memory requires a single range "
+                "matching the configured memory size."
+            )
+
+        self._mem_range = ranges[0]
+        self.target.addr_ranges = [self._mem_range]
+        self.backing.range = self._mem_range
+
+    @overrides(AbstractMemorySystem)
+    def get_uninterleaved_range(self) -> List[AddrRange]:
+        if self._mem_range is None:
+            raise Exception("Memory range must be set before querying ranges.")
+
+        return [self._mem_range]

@@ -51,7 +51,7 @@
 #include "stats.hh"
 
 // Define global string variable decalred in stats.hh
-std::string filename = "m5out/stats-systemc.txt";
+std::string filename = "m5out/stats.txt";
 
 namespace Gem5SystemC
 {

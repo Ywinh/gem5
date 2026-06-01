@@ -507,7 +507,7 @@ def DebugFlagCommon(name, flags, desc, fmt, tags):
         COMPONENTS=':'.join(flags))
     cc_file = Dir(env['BUILDDIR']).Dir('debug').File('%s.cc' % name)
     gem5py_env.Command(cc_file,
-            [ "${GEM5PY}", "${DEBUGFLAGCC_PY}" ],
+            [ "${GEM5PY}", "${DEBUGFLAGCC_PY}", hh_file ],
             MakeAction('"${GEM5PY}" "${DEBUGFLAGCC_PY}" "${TARGET}" "${NAME}"',
                 Transform("TRACING", 0)),
             DEBUGFLAGCC_PY=build_tools.File('debugflagcc.py'), NAME=name)

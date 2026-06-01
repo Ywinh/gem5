@@ -25,6 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import os
+import shutil
 import subprocess
 
 from shutil import which
@@ -32,6 +33,10 @@ from shutil import which
 from gem5_scons import warning
 
 Import("env")
+
+if not env["CONF"]["USE_SYSTEMC"]:
+    env["HAVE_DRAMSYS"] = False
+    Return()
 
 build_root = Dir("../..").abspath
 build_current = Dir(".").abspath
@@ -70,6 +75,17 @@ subprocess.run(
     ],
     check=True
 )
+
+nlohmann_json_header = os.path.join(
+    build_current, "_deps", "nlohmann_json-src", "include", "nlohmann",
+    "json.hpp")
+nlohmann_json_single_header = os.path.join(
+    build_current, "_deps", "nlohmann_json-src", "single_include",
+    "nlohmann", "json.hpp")
+if (not os.path.exists(nlohmann_json_header) and
+        os.path.exists(nlohmann_json_single_header)):
+    os.makedirs(os.path.dirname(nlohmann_json_header), exist_ok=True)
+    shutil.copyfile(nlohmann_json_single_header, nlohmann_json_header)
 
 subprocess.run(
     ["cmake", "--build", build_current],
