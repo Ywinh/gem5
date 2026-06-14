@@ -1333,6 +1333,80 @@ decode QUADRANT default Unknown::unknown() {
             }
         }
 
+        0x02: decode FUNCT3 {
+            format SystemOp {
+                0x0: decode RD {
+                    0x00: decode RS1 {
+                        0x00: decode FUNCT7 {
+                            0x00: decode RS2 {
+                                0x18: sync({{
+                                }}, IsSerializeBefore, IsSerializeAfter,
+                                    No_OpClass);
+                            }
+                        }
+                    }
+                }
+            }
+
+            format ROp {
+                0x1: decode FUNCT7 {
+                    0x12: mulaw({{
+                        uint32_t acc = static_cast<uint32_t>(Rd);
+                        uint32_t product =
+                            static_cast<uint32_t>(Rs1_uw * Rs2_uw);
+                        Rd = static_cast<int32_t>(acc + product);
+                    }}, IntMultOp);
+                    0x20: mveqz({{
+                        Rd = rvSext(Rs2) == 0 ? rvSext(Rs1) : rvSext(Rd);
+                    }});
+                    0x21: mvnez({{
+                        Rd = rvSext(Rs2) != 0 ? rvSext(Rs1) : rvSext(Rd);
+                    }});
+                }
+            }
+
+            format ExtOp {
+                0x2: ext({{
+                    uint64_t xlen = rvSelect<uint64_t>(32, 64);
+                    if (imm1 >= xlen || imm2 >= xlen) {
+                        return std::make_shared<IllegalInstFault>(
+                                "bit index out of range", machInst);
+                    }
+                    if (imm1 < imm2) {
+                        return std::make_shared<IllegalInstFault>(
+                                "imm1 < imm2", machInst);
+                    }
+
+                    uint64_t width = imm1 - imm2 + 1;
+                    uint64_t field = rvZext(Rs1) >> imm2;
+                    if (width < 64) {
+                        field &= (UINT64_C(1) << width) - 1;
+                    }
+
+                    uint64_t sign_bit = UINT64_C(1) << (width - 1);
+                    Rd = static_cast<int64_t>((field ^ sign_bit) - sign_bit);
+                }});
+                0x3: extu({{
+                    uint64_t xlen = rvSelect<uint64_t>(32, 64);
+                    if (imm1 >= xlen || imm2 >= xlen) {
+                        return std::make_shared<IllegalInstFault>(
+                                "bit index out of range", machInst);
+                    }
+                    if (imm1 < imm2) {
+                        return std::make_shared<IllegalInstFault>(
+                                "imm1 < imm2", machInst);
+                    }
+
+                    uint64_t width = imm1 - imm2 + 1;
+                    uint64_t field = rvZext(Rs1) >> imm2;
+                    if (width < 64) {
+                        field &= (UINT64_C(1) << width) - 1;
+                    }
+                    Rd = rvZext(field);
+                }});
+            }
+        }
+
         0x03: decode FUNCT3 {
             format FenceOp {
                 0x0: fence({{

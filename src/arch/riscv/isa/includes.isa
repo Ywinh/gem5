@@ -49,6 +49,7 @@ output header {{
 #include "arch/riscv/insts/amo.hh"
 #include "arch/riscv/insts/bs.hh"
 #include "arch/riscv/insts/compressed.hh"
+#include "arch/riscv/insts/ext.hh"
 #include "arch/riscv/insts/mem.hh"
 #include "arch/riscv/insts/pseudo.hh"
 #include "arch/riscv/insts/standard.hh"

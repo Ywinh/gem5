@@ -80,6 +80,8 @@ BitUnion64(ExtMachInst)
     Bitfield<19, 15>    rs1;
     Bitfield<24, 20>    rs2;
     Bitfield<31, 25>    funct7;
+    Bitfield<31, 26>    imm1;
+    Bitfield<25, 20>    imm2;
     // Bit shifts
     Bitfield<30>        srType;
     Bitfield<24, 20>    shamt5;

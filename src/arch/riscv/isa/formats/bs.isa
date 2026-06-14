@@ -46,3 +46,24 @@ def format BSOp(code, bs_code='bs = (uint8_t)BS;', *opt_flags) {{
     decode_block = BasicDecode.subst(iop)
     exec_output = BasicExecute.subst(iop)
 }};
+
+def template ExtConstructor {{
+    %(class_name)s::%(class_name)s(ExtMachInst machInst)
+        : %(base_class)s("%(mnemonic)s", machInst, %(op_class)s)
+    {
+        %(set_reg_idx_arr)s;
+        %(constructor)s;
+        %(ext_code)s;
+    }
+}};
+
+def format ExtOp(code,
+                 ext_code='imm1 = (uint8_t)IMM1; imm2 = (uint8_t)IMM2;',
+                 *opt_flags) {{
+    iop = InstObjParams(name, Name, 'ExtOp',
+        {'code': code, 'ext_code': ext_code}, opt_flags)
+    header_output = BasicDeclare.subst(iop)
+    decoder_output = ExtConstructor.subst(iop)
+    decode_block = BasicDecode.subst(iop)
+    exec_output = BasicExecute.subst(iop)
+}};
