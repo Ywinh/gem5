@@ -52,6 +52,18 @@ Load::generateDisassembly(Addr pc, const loader::SymbolTable *symtab) const
 }
 
 std::string
+ShiftedAddrLoad::generateDisassembly(
+    Addr pc, const loader::SymbolTable *symtab) const
+{
+    std::stringstream ss;
+    ss << mnemonic << ' ' << registerName(destRegIdx(0)) << ", "
+       << registerName(srcRegIdx(0)) << ", "
+       << registerName(srcRegIdx(1)) << ", "
+       << offset;
+    return ss.str();
+}
+
+std::string
 Store::generateDisassembly(Addr pc, const loader::SymbolTable *symtab) const
 {
     std::stringstream ss;

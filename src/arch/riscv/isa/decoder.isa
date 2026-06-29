@@ -1405,6 +1405,12 @@ decode QUADRANT default Unknown::unknown() {
                     Rd = rvZext(field);
                 }});
             }
+
+            format ShiftLoad {
+                0x4: lrw({{
+                    Rd_sd = Mem_sw;
+                }});
+            }
         }
 
         0x03: decode FUNCT3 {

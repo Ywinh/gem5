@@ -552,6 +552,15 @@ def format Load(memacc_code, ea_code = {{EA = rvSext(Rs1 + offset);}},
         inst_flags, 'Load', exec_template_base='Load')
 }};
 
+def format ShiftLoad(memacc_code,
+        ea_code = {{EA = rvSext(Rs1 + (rvZext(Rs2) << offset));}},
+        offset_code={{offset = FUNCT2;}},
+        mem_flags=[], inst_flags=[]) {{
+    (header_output, decoder_output, decode_block, exec_output) = \
+        LoadStoreBase(name, Name, offset_code, ea_code, memacc_code, mem_flags,
+        inst_flags, 'ShiftedAddrLoad', exec_template_base='Load')
+}};
+
 def format Store(memacc_code, ea_code={{EA = rvSext(Rs1 + offset);}},
         offset_code={{offset = sext<12>(IMM5 | (IMM7 << 5));}},
         mem_flags=[], inst_flags=[]) {{

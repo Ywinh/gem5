@@ -4,7 +4,8 @@ XuanTie C920 simulation run script.
 Usage:
   build/RISCV/gem5.opt configs/c920/run.py [--binary <path>]
 
-Default binary: gem5-resources riscv-hello
+This variant runs the workload as RISC-V FS bare-metal so fixed MMIO
+addresses are treated as physical addresses.
 """
 
 import argparse
@@ -15,19 +16,21 @@ from processor import C920Processor
 
 import m5
 from m5.objects import *
+from m5.util import warn
 
 from gem5.components.boards.simple_board import SimpleBoard
 from gem5.components.memory.dram_interfaces.ddr4 import DDR4_2400_8x8
 from gem5.components.memory.memory import ChanneledMemory
 from gem5.components.memory.simple import SingleChannelSimpleMemory
 from gem5.components.memory.single_channel import SingleChannelDDR4_2400
-from gem5.resources.resource import (
-    BinaryResource,
-    obtain_resource,
-)
+from gem5.resources.resource import BinaryResource
 from gem5.simulate.simulator import Simulator
 
 EXTERNAL_SYSTEMC_SIDECAR = "c920_external_systemc_simple_mem.conf"
+FIFO_BASE = 0x0A082000
+FIFO_SIZE = 0x80
+EXIT_REG_SIZE = 0x8
+FIFO_WINDOW_SIZE = FIFO_SIZE + EXIT_REG_SIZE
 
 
 class DDR4_2400_8x8_NoDRAMTiming(DDR4_2400_8x8):
@@ -75,6 +78,23 @@ def SingleChannelDDR4_2400_NoDRAMTiming(size: str):
     return ChanneledMemory(DDR4_2400_8x8_NoDRAMTiming, 1, 64, size=size)
 
 
+class C920BareMetalBoard(SimpleBoard):
+    def _setup_memory_ranges(self) -> None:
+        memory = self.get_memory()
+        self.mem_ranges = [AddrRange(start=0x80000000, size=memory.get_size())]
+        memory.set_memory_range(self.mem_ranges)
+
+    def set_baremetal_workload(self, binary: BinaryResource) -> None:
+        if self.is_workload_set():
+            warn("Workload has been set more than once!")
+        self.set_is_workload_set(True)
+        self._set_fullsystem(True)
+        self.workload = RiscvBareMetal(
+            bootloader=binary.get_local_path(),
+            auto_reset_vect=True,
+        )
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="XuanTie C920 gem5 simulation"
@@ -85,7 +105,7 @@ def parse_args():
         "--binary",
         type=str,
         default=None,
-        help="Path to RISC-V binary to run (SE mode)",
+        help="Path to RISC-V bare-metal ELF to run (FS bare-metal mode)",
     )
     parser.add_argument(
         "--num-cores",
@@ -108,6 +128,31 @@ def parse_args():
     )
     parser.add_argument(
         "--clock", type=str, default="1GHz", help="CPU clock frequency"
+    )
+    parser.add_argument(
+        "--num-systems",
+        type=int,
+        default=1,
+        choices=[1, 2],
+        help=(
+            "Instantiate this many independent C920 systems under one root. "
+            "Each system keeps its own address map and FIFO ExternalSlave."
+        ),
+    )
+    parser.add_argument(
+        "--fifo-port-prefix",
+        type=str,
+        default="transactor",
+        help=(
+            "Base port_data name used for FIFO ExternalSlave endpoints. "
+            "When --num-systems > 1, the system index is appended."
+        ),
+    )
+    parser.add_argument(
+        "--system-name-prefix",
+        type=str,
+        default="sys",
+        help="Prefix used for the generated root child system names.",
     )
     mode_group.add_argument(
         "--zero-dram-latency",
@@ -194,15 +239,29 @@ def write_external_systemc_sidecar(args) -> str:
     return sidecar_path
 
 
-def main():
-    args = parse_args()
+def validate_args(args) -> None:
+    if not args.binary:
+        raise ValueError("--binary is required for the C920 bare-metal run.")
 
-    cache_hierarchy = C920CacheHierarchy(
-        l1i_size=args.l1i_size,
-        l1d_size=args.l1d_size,
-        l2_size=args.l2_size,
-    )
+    if args.num_systems > 1 and (
+        args.systemc_print_mem
+        or args.systemc_simple_mem
+        or args.external_systemc_simple_mem
+    ):
+        raise ValueError(
+            "Multi-system mode currently supports only gem5-local memory "
+            "backends. The FIFO ExternalSlave remains enabled per system."
+        )
 
+
+def fifo_port_data(args, system_index: int) -> str:
+    if args.num_systems == 1:
+        return args.fifo_port_prefix
+
+    return f"{args.fifo_port_prefix}{system_index}"
+
+
+def create_memory(args):
     if args.systemc_print_mem:
         from systemc_memory import C920SystemcPrintMemory
 
@@ -211,8 +270,9 @@ def main():
             "a SystemC print target and mirrored into gem5 physmem backing "
             "store for executable SE runs."
         )
-        memory = C920SystemcPrintMemory(args.mem_size)
-    elif args.systemc_simple_mem:
+        return C920SystemcPrintMemory(args.mem_size)
+
+    if args.systemc_simple_mem:
         from systemc_memory import C920SystemcSimpleMemory
 
         print(
@@ -220,13 +280,14 @@ def main():
             "through Gem5ToTlmBridge into a SystemC memory with "
             "SimpleMemory-like latency and bandwidth controls."
         )
-        memory = C920SystemcSimpleMemory(
+        return C920SystemcSimpleMemory(
             size=args.mem_size,
             latency=args.simple_mem_latency,
             latency_var=args.simple_mem_latency_var,
             bandwidth=args.simple_mem_bandwidth,
         )
-    elif args.external_systemc_simple_mem:
+
+    if args.external_systemc_simple_mem:
         from systemc_memory import C920ExternalSystemcSimpleMemory
 
         print(
@@ -234,42 +295,119 @@ def main():
             "a tlm_slave config.ini plus a simple-memory sidecar for the "
             "standalone util/tlm runner."
         )
-        memory = C920ExternalSystemcSimpleMemory(size=args.mem_size)
-    elif args.gem5_simple_mem:
+        return C920ExternalSystemcSimpleMemory(size=args.mem_size)
+
+    if args.gem5_simple_mem:
         print(
             "gem5 SimpleMemory mode enabled with explicit latency and "
             "bandwidth controls."
         )
-        memory = SingleChannelSimpleMemory(
+        return SingleChannelSimpleMemory(
             latency=args.simple_mem_latency,
             latency_var=args.simple_mem_latency_var,
             bandwidth=args.simple_mem_bandwidth,
             size=args.mem_size,
         )
-    elif args.zero_dram_latency:
-        memory = SingleChannelDDR4_2400_NoDRAMTiming(args.mem_size)
-    else:
-        memory = SingleChannelDDR4_2400(args.mem_size)
 
+    if args.zero_dram_latency:
+        return SingleChannelDDR4_2400_NoDRAMTiming(args.mem_size)
+
+    return SingleChannelDDR4_2400(args.mem_size)
+
+
+def configure_fifo_pma(processor: C920Processor) -> None:
+    fifo_range = AddrRange(FIFO_BASE, size=FIFO_WINDOW_SIZE)
+    for core in processor.get_cores():
+        pma = core.get_mmu().pma_checker
+        pma.uncacheable = [fifo_range]
+        # pma.strict_order = [fifo_range]
+
+
+def build_board(args, system_index: int = 0):
+    cache_hierarchy = C920CacheHierarchy(
+        l1i_size=args.l1i_size,
+        l1d_size=args.l1d_size,
+        l2_size=args.l2_size,
+        fifo_port_data=fifo_port_data(args, system_index),
+        fifo_base=FIFO_BASE,
+        fifo_size=FIFO_WINDOW_SIZE,
+    )
+
+    memory = create_memory(args)
     processor = C920Processor(num_cores=args.num_cores)
+    configure_fifo_pma(processor)
 
-    board = SimpleBoard(
+    board = C920BareMetalBoard(
         clk_freq=args.clock,
         processor=processor,
         memory=memory,
         cache_hierarchy=cache_hierarchy,
     )
+    board.set_baremetal_workload(
+        binary=BinaryResource(local_path=os.path.abspath(args.binary))
+    )
 
-    if args.binary:
-        board.set_se_binary_workload(
-            binary=BinaryResource(local_path=os.path.abspath(args.binary))
+    if args.external_systemc_simple_mem and hasattr(
+        board.workload, "addr_check"
+    ):
+        board.workload.addr_check = False
+
+    return board
+
+
+def attach_board_to_root(root: Root, system_name: str, board) -> None:
+    board._connect_things()
+    setattr(root, system_name, board)
+
+    board.get_processor()._pre_instantiate(root)
+    board.get_memory()._pre_instantiate(root)
+    if board.get_cache_hierarchy():
+        board.get_cache_hierarchy()._pre_instantiate(root)
+
+
+def run_multi_system(args) -> None:
+    boards = []
+    for system_index in range(args.num_systems):
+        system_name = f"{args.system_name_prefix}{system_index}"
+        board = build_board(args, system_index)
+        boards.append((system_name, board))
+
+    print(
+        f"Multi-system mode enabled: building {args.num_systems} independent "
+        "C920 systems under one root."
+    )
+    for system_index, (system_name, _) in enumerate(boards):
+        print(
+            f"  {system_name}: FIFO ExternalSlave port_data="
+            f"{fifo_port_data(args, system_index)}"
         )
-    else:
-        board.set_se_binary_workload(binary=obtain_resource("riscv-hello"))
+
+    root = Root(full_system=all(board.is_fullsystem() for _, board in boards))
+    for system_name, board in boards:
+        attach_board_to_root(root, system_name, board)
+
+    max_ticks = m5.MaxTick if args.max_ticks is None else args.max_ticks
+    m5.instantiate()
+
+    for _, board in boards:
+        board._post_instantiate()
+
+    exit_event = m5.simulate(max_ticks)
+    print(f"Exiting @ tick {m5.curTick()} because " f"{exit_event.getCause()}")
+    print("Simulation Done")
+
+
+def main():
+    args = parse_args()
+    validate_args(args)
+
+    if args.num_systems > 1:
+        run_multi_system(args)
+        return
+
+    board = build_board(args)
 
     if args.external_systemc_simple_mem:
-        if hasattr(board.workload, "addr_check"):
-            board.workload.addr_check = False
         sidecar_path = write_external_systemc_sidecar(args)
         config_path = os.path.join(m5.options.outdir, "config.ini")
         print(f"External SystemC sidecar written to: {sidecar_path}")

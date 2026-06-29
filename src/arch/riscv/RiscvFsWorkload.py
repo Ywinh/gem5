@@ -44,6 +44,12 @@ class RiscvBareMetal(Workload):
     bootloader = Param.String("File, that contains the bootloader code")
     bare_metal = Param.Bool(True, "Using Bare Metal Application?")
     reset_vect = Param.Addr(0x0, "Reset vector")
+    skip_load_image = Param.Bool(
+        False,
+        "Parse the ELF for entry/symbol information but skip writing its "
+        "loadable segments into gem5 memory. Use this when an external "
+        "loader owns the backing memory contents.",
+    )
     semihosting = Param.RiscvSemihosting(
         NULL,
         "Enable support for RISC-V semihosting by settings this parameter",

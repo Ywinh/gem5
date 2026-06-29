@@ -9,7 +9,6 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
-#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -94,6 +93,17 @@ lower(std::string value)
     return value;
 }
 
+std::string
+siblingPath(const std::string &path, const char *name)
+{
+    const auto slash = path.find_last_of("/\\");
+    if (slash == std::string::npos) {
+        return std::string(name);
+    }
+
+    return path.substr(0, slash + 1) + name;
+}
+
 Options
 parseArgs(int argc, char **argv)
 {
@@ -158,7 +168,7 @@ getDebugFlags(const Options &options)
 }
 
 gem5::AddrRange
-parseMemoryRange(const std::filesystem::path &configPath)
+parseMemoryRange(const std::string &configPath)
 {
     std::ifstream config(configPath);
     if (!config) {
@@ -201,10 +211,10 @@ parseMemoryRange(const std::filesystem::path &configPath)
 }
 
 MemoryModelConfig
-loadSidecar(const std::filesystem::path &configPath)
+loadSidecar(const std::string &configPath)
 {
     MemoryModelConfig config;
-    const auto sidecarPath = configPath.parent_path() / SidecarName;
+    const auto sidecarPath = siblingPath(configPath, SidecarName);
     std::ifstream sidecar(sidecarPath);
     if (!sidecar) {
         return config;

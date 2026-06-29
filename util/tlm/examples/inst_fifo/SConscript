@@ -1,0 +1,12 @@
+#!python
+
+Import('env')
+Import('deps')
+
+env = env.Clone()
+
+src = [File('main.cc'), File('inst_fifo.cc')]
+
+bin = env.Program('gem5.sc', src + deps)
+
+Return('bin')

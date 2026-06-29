@@ -149,5 +149,9 @@ ex_c920 = SConscript('examples/c920_simple_mem/SConscript',
                      variant_dir='build/examples/c920_simple_mem',
                      exports=['env', 'deps'],
                      duplicate=GetOption('duplicate_sources'))
+ex_fifo = SConscript('examples/inst_fifo/SConscript',
+                     variant_dir='build/examples/inst_fifo',
+                     exports=['env', 'deps'],
+                     duplicate=GetOption('duplicate_sources'))
 
-Default(ex_master + ex_slave + ex_c920)
+Default(ex_master + ex_slave + ex_c920 + ex_fifo)

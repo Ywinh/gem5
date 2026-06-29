@@ -67,8 +67,10 @@ BareMetal::initState()
 {
     Workload::initState();
 
-    warn_if(!bootloader->buildImage().write(system->physProxy),
-            "Could not load sections to memory.");
+    if (!params().skip_load_image) {
+        warn_if(!bootloader->buildImage().write(system->physProxy),
+                "Could not load sections to memory.");
+    }
 
     for (auto *tc: system->threads) {
         tc->getIsaPtr()->resetThread();

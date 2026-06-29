@@ -17,9 +17,11 @@ from cache import (
 )
 
 from m5.objects import (
+    AddrRange,
     BadAddr,
     BaseXBar,
     Cache,
+    ExternalSlave,
     L2XBar,
     Port,
     SystemXBar,
@@ -53,12 +55,17 @@ class C920CacheHierarchy(AbstractClassicCacheHierarchy):
         l1d_size: str = "64KiB",
         l2_size: str = "512KiB",
         membus: Optional[BaseXBar] = None,
+        fifo_port_data: Optional[str] = "transactor",
+        fifo_base: int = 0x0A082000,
+        fifo_size: int = 0x88,
     ) -> None:
         super().__init__()
         self.membus = membus if membus else self._get_default_membus()
         self._l1i_size = l1i_size
         self._l1d_size = l1d_size
         self._l2_size = l2_size
+        self._fifo_port_data = fifo_port_data
+        self._fifo_range = AddrRange(fifo_base, size=fifo_size)
 
     @overrides(AbstractClassicCacheHierarchy)
     def get_mem_side_port(self) -> Port:
@@ -74,6 +81,14 @@ class C920CacheHierarchy(AbstractClassicCacheHierarchy):
 
         for _, port in board.get_mem_ports():
             self.membus.mem_side_ports = port
+
+        if self._fifo_port_data is not None:
+            self.fifo_tlm = ExternalSlave(
+                port_type="tlm_slave",
+                port_data=self._fifo_port_data,
+            )
+            self.fifo_tlm.addr_ranges = [self._fifo_range]
+            self.membus.mem_side_ports = self.fifo_tlm.port
 
         self.l2bus = L2XBar()
 

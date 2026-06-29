@@ -104,6 +104,9 @@ class PMAChecker : public BasePMAChecker
     bool isUncacheable(const AddrRange &range);
     bool isUncacheable(const Addr &addr, const unsigned size);
     bool isUncacheable(PacketPtr pkt);
+    bool isStrictlyOrdered(const AddrRange &range);
+    bool isStrictlyOrdered(const Addr &addr, const unsigned size);
+    bool isStrictlyOrdered(PacketPtr pkt);
 
     void takeOverFrom(BasePMAChecker *old) override;
 
@@ -134,6 +137,7 @@ class PMAChecker : public BasePMAChecker
     inline bool hasMisaligned();
 
     AddrRangeList uncacheable;
+    AddrRangeList strictlyOrdered;
     AddrRangeMap<bool, 3> misaligned;
 };
 

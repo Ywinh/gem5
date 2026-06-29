@@ -55,7 +55,9 @@ namespace RiscvISA
 
 PMAChecker::PMAChecker(const Params &params) :
 BasePMAChecker(params),
-uncacheable(params.uncacheable.begin(), params.uncacheable.end())
+uncacheable(params.uncacheable.begin(), params.uncacheable.end()),
+strictlyOrdered(
+    params.strict_order.begin(), params.strict_order.end())
 {
     for (auto& range: params.misaligned) {
         misaligned.insert(range, true);
@@ -66,7 +68,10 @@ Fault
 PMAChecker::check(const RequestPtr &req, BaseMMU::Mode mode, Addr vaddr)
 {
     if (isUncacheable(req->getPaddr(), req->getSize())) {
-        req->setFlags(Request::UNCACHEABLE | Request::STRICT_ORDER);
+        req->setFlags(Request::UNCACHEABLE);
+    }
+    if (isStrictlyOrdered(req->getPaddr(), req->getSize())) {
+        req->setFlags(Request::STRICT_ORDER);
     }
 
     return hasMisaligned() ? checkPAddrAlignment(req, mode, vaddr) : NoFault;
@@ -119,12 +124,37 @@ PMAChecker::isUncacheable(PacketPtr pkt)
     return isUncacheable(pkt->getAddrRange());
 }
 
+bool
+PMAChecker::isStrictlyOrdered(const AddrRange &range)
+{
+    for (auto const &strict_order_range: strictlyOrdered) {
+        if (range.isSubset(strict_order_range)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool
+PMAChecker::isStrictlyOrdered(const Addr &addr, const unsigned size)
+{
+    AddrRange range(addr, addr + size);
+    return isStrictlyOrdered(range);
+}
+
+bool
+PMAChecker::isStrictlyOrdered(PacketPtr pkt)
+{
+    return isStrictlyOrdered(pkt->getAddrRange());
+}
+
 void
 PMAChecker::takeOverFrom(BasePMAChecker *old)
 {
     PMAChecker* derived_old = dynamic_cast<PMAChecker*>(old);
     assert(derived_old != nullptr);
     uncacheable = derived_old->uncacheable;
+    strictlyOrdered = derived_old->strictlyOrdered;
     misaligned = derived_old->misaligned;
 }
 
