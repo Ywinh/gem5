@@ -40,3 +40,11 @@ configs/dram/lowp_sweep.cfg
 .vscode
 typings
 .DS_Store
+O3info/*
+t.log_analysis_report.md
+DCACHE_ACCESS_ANALYSIS.md
+CLAUDE.md
+MinorCPU_ICache_Analysis.md4
+.*
+*.patch
+.vscode/*

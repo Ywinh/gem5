@@ -4,9 +4,9 @@ set output-radix 16
 set print pretty on
 
 # 设置断点（根据你的调试目标修改）
-b ImageFileData::ImageFileData
+b Process::initState()
 
 # 6. 运行 gem5 并加载配置脚本
-run configs/906/run.py
+run /tmp/dramsys_riscv_hello.py
 
 layout split
